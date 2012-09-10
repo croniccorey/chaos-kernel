@@ -984,7 +984,7 @@ module_param_call(emdh_val, set_reg, get_reg, &mddi_info[1], 0644);
 
 #endif
 
-static struct platform_driver mddi_driver = {
+static struct platform_driver mddi_driver __refdata = {
 	.probe = mddi_probe,
 	.driver = { .name = "msm_mddi" },
 };

@@ -92,7 +92,7 @@ static int lowmem_shrink(struct shrinker *s, int nr_to_scan, gfp_t gfp_mask)
 {
 	struct task_struct *p;
 	struct task_struct *selected = NULL;
-	struct sysinfo si;
+
 	int rem = 0;
 	int tasksize;
 	int i;

@@ -394,13 +394,13 @@ static irqreturn_t smd_modem_irq_handler(int irq, void *data)
 	handle_smd_irq(&smd_ch_list_modem, notify_modem_smd);
 	return IRQ_HANDLED;
 }
-
+#ifdef UNUSED
 static irqreturn_t smd_dsp_irq_handler(int irq, void *data)
 {
 	handle_smd_irq(&smd_ch_list_dsp, notify_dsp_smd);
 	return IRQ_HANDLED;
 }
-
+#endif
 static void smd_fake_irq_handler(unsigned long arg)
 {
 	handle_smd_irq(&smd_ch_list_modem, notify_modem_smd);

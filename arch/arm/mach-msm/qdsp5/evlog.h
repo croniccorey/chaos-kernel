@@ -105,7 +105,7 @@ static void ev_log_write(struct ev_log *log, unsigned id, unsigned arg)
 done:
 	local_irq_restore(flags);
 }
-
+#ifdef UNUSED
 static void ev_log_freeze(struct ev_log *log, unsigned count)
 {
 	unsigned long flags;
@@ -113,7 +113,7 @@ static void ev_log_freeze(struct ev_log *log, unsigned count)
 	log->fault = count;
 	local_irq_restore(flags);
 }
-
+#endif
 static int ev_log_open(struct inode *inode, struct file *file)
 {
 	file->private_data = inode->i_private;

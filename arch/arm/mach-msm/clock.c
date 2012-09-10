@@ -184,7 +184,7 @@ static unsigned long clk_find_min_rate_locked(struct clk *clk)
 
 int clk_set_rate(struct clk *clk, unsigned long rate)
 {
-	int ret;
+	int ret = 0;
 	unsigned long flags;
 
 	spin_lock_irqsave(&clocks_lock, flags);

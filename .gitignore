@@ -30,6 +30,7 @@ modules.builtin
 *.lzma
 *.lzo
 *.patch
+*.diff
 *.gcno
 
 #
@@ -48,7 +49,6 @@ modules.builtin
 # git files that we don't want to ignore even it they are dot-files
 #
 !.gitignore
-!.mailmap
 
 #
 # Generated include files
@@ -75,5 +75,6 @@ GSYMS
 GTAGS
 
 *.orig
+*.rej
 *~
 \#*#

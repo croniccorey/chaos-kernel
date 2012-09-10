@@ -59,7 +59,7 @@
 #include <linux/workqueue.h>
 
 #include <asm/atomic.h>
-#include <asm/irq.h>
+#include <linux/irq.h>
 #include <asm/system.h>
 
 #include <mach/hardware.h>
@@ -169,7 +169,8 @@ static struct workqueue_struct *msm_hs_workqueue;
 #define UARTDM_TO_MSM(uart_port) \
 	container_of((uart_port), struct msm_hs_port, uport)
 
-static inline unsigned int use_low_power_rx_wakeup(struct msm_hs_port *msm_uport)
+static inline
+unsigned int use_low_power_rx_wakeup(struct msm_hs_port *msm_uport)
 {
 	return (msm_uport->rx_wakeup.irq >= 0);
 }
@@ -382,11 +383,11 @@ static void msm_hs_set_bps_locked(struct uart_port *uport,
 		rxstale = 2;
 		break;
 	}
-	if (bps > 460800) {
+	if (bps > 460800)
 		uport->uartclk = bps * 16;
-	} else {
+	else
 		uport->uartclk = 7372800;
-	}
+
 	if (clk_set_rate(msm_uport->clk, uport->uartclk)) {
 		printk(KERN_WARNING "Error setting clock rate on UART\n");
 		return;
@@ -430,14 +431,13 @@ static void msm_hs_set_termios(struct uart_port *uport,
 	data &= ~UARTDM_MR2_PARITY_MODE_BMSK;
 	/* set parity */
 	if (PARENB == (c_cflag & PARENB)) {
-		if (PARODD == (c_cflag & PARODD)) {
+		if (PARODD == (c_cflag & PARODD))
 			data |= ODD_PARITY;
-		} else if (CMSPAR == (c_cflag & CMSPAR)) {
+		else if (CMSPAR == (c_cflag & CMSPAR))
 			data |= SPACE_PARITY;
-		} else {
+		else
 			data |= EVEN_PARITY;
 		}
-	}
 
 	/* Set bits per char */
 	data &= ~UARTDM_MR2_BITS_PER_CHAR_BMSK;
@@ -803,7 +803,8 @@ static unsigned int msm_hs_get_mctrl_locked(struct uart_port *uport)
  * buffer is not full. False disables auto RFR, and deasserts RFR to indicate
  * we are not ready for data. Must be called with UART clock on.
  */
-static void set_rfr_locked(struct uart_port *uport, int auto_rfr) {
+static void set_rfr_locked(struct uart_port *uport, int auto_rfr)
+{
 	unsigned int data;
 
 	data = msm_hs_read(uport, UARTDM_MR1_ADDR);
@@ -955,7 +956,8 @@ static int msm_hs_check_clock_off_locked(struct uart_port *uport)
 	return 1;
 }
 
-static enum hrtimer_restart msm_hs_clk_off_retry(struct hrtimer *timer) {
+static enum hrtimer_restart msm_hs_clk_off_retry(struct hrtimer *timer)
+{
 	unsigned long flags;
 	int ret = HRTIMER_NORESTART;
 	struct msm_hs_port *msm_uport = container_of(timer, struct msm_hs_port,
@@ -1049,7 +1051,8 @@ static irqreturn_t msm_hs_isr(int irq, void *dev)
 	return IRQ_HANDLED;
 }
 
-void msm_hs_request_clock_off_locked(struct uart_port *uport) {
+void msm_hs_request_clock_off_locked(struct uart_port *uport)
+{
 	struct msm_hs_port *msm_uport = UARTDM_TO_MSM(uport);
 
 	if (msm_uport->clk_state == MSM_HS_CLK_ON) {
@@ -1064,7 +1067,8 @@ void msm_hs_request_clock_off_locked(struct uart_port *uport) {
 EXPORT_SYMBOL(msm_hs_request_clock_off_locked);
 
 /* request to turn off uart clock once pending TX is flushed */
-void msm_hs_request_clock_off(struct uart_port *uport) {
+void msm_hs_request_clock_off(struct uart_port *uport)
+{
 	unsigned long flags;
 
 	spin_lock_irqsave(&uport->lock, flags);
@@ -1073,7 +1077,8 @@ void msm_hs_request_clock_off(struct uart_port *uport) {
 }
 EXPORT_SYMBOL(msm_hs_request_clock_off);
 
-void msm_hs_request_clock_on_locked(struct uart_port *uport) {
+void msm_hs_request_clock_on_locked(struct uart_port *uport)
+{
 	struct msm_hs_port *msm_uport = UARTDM_TO_MSM(uport);
 	unsigned int data;
 
@@ -1106,7 +1111,8 @@ void msm_hs_request_clock_on_locked(struct uart_port *uport) {
 }
 EXPORT_SYMBOL(msm_hs_request_clock_on_locked);
 
-void msm_hs_request_clock_on(struct uart_port *uport) {
+void msm_hs_request_clock_on(struct uart_port *uport)
+{
 	unsigned long flags;
 	spin_lock_irqsave(&uport->lock, flags);
 	msm_hs_request_clock_on_locked(uport);
@@ -1260,6 +1266,9 @@ static int msm_hs_startup(struct uart_port *uport)
 	if (unlikely(ret))
 		return ret;
 	if (use_low_power_rx_wakeup(msm_uport)) {
+		/* move from startup  **/
+		if (unlikely(set_irq_wake(msm_uport->rx_wakeup.irq, 1)))
+			return -ENXIO;
 		ret = request_irq(msm_uport->rx_wakeup.irq,
 				  msm_hs_rx_wakeup_isr,
 				  IRQF_TRIGGER_FALLING,
@@ -1347,6 +1356,9 @@ static int msm_hs_probe(struct platform_device *pdev)
 	struct resource *resource;
 	struct msm_serial_hs_platform_data *pdata = pdev->dev.platform_data;
 
+	/* for debug */
+	printk(KERN_INFO "PRUE G\n");
+
 	if (pdev->id < 0 || pdev->id >= UARTDM_NR) {
 		printk(KERN_ERR "Invalid plaform device ID = %d\n", pdev->id);
 		return -EINVAL;
@@ -1367,8 +1379,10 @@ static int msm_hs_probe(struct platform_device *pdev)
 		return -ENOMEM;
 
 	uport->irq = platform_get_irq(pdev, 0);
+	/*
 	if (unlikely(uport->irq < 0))
 		return -ENXIO;
+	*/
 	if (unlikely(set_irq_wake(uport->irq, 1)))
 		return -ENXIO;
 
@@ -1382,8 +1396,10 @@ static int msm_hs_probe(struct platform_device *pdev)
 
 		if (unlikely(msm_uport->rx_wakeup.irq < 0))
 			return -ENXIO;
-		if (unlikely(set_irq_wake(msm_uport->rx_wakeup.irq, 1)))
-			return -ENXIO;
+		/* move this to startup
+		 * if (unlikely(set_irq_wake(msm_uport->rx_wakeup.irq, 1)))
+		 * return -ENXIO;
+		 */
 	}
 
 	if (pdata == NULL)
@@ -1445,12 +1461,12 @@ static int __init msm_serial_hs_init(void)
 
 	ret = uart_register_driver(&msm_hs_driver);
 	if (unlikely(ret)) {
-		printk(KERN_ERR "%s failed to load\n", __FUNCTION__);
+		printk(KERN_ERR "%s failed to load\n", __func__);
 		return ret;
 	}
 	ret = platform_driver_register(&msm_serial_hs_platform_driver);
 	if (ret) {
-		printk(KERN_ERR "%s failed to load\n", __FUNCTION__);
+		printk(KERN_ERR "%s failed to load\n", __func__);
 		uart_unregister_driver(&msm_hs_driver);
 		return ret;
 	}
@@ -1479,6 +1495,11 @@ static void msm_hs_shutdown(struct uart_port *uport)
 	/* Disable the receiver */
 	msm_hs_write(uport, UARTDM_CR_ADDR, UARTDM_CR_RX_DISABLE_BMSK);
 
+	/* disable irq wakeup when shutdown **/
+	if (use_low_power_rx_wakeup(msm_uport))
+		if (unlikely(set_irq_wake(msm_uport->rx_wakeup.irq, 0)))
+			return;
+
 	/* Free the interrupt */
 	free_irq(uport->irq, msm_uport);
 	if (use_low_power_rx_wakeup(msm_uport))
@@ -1503,6 +1524,9 @@ static void msm_hs_shutdown(struct uart_port *uport)
 
 	if (cancel_work_sync(&msm_uport->rx.tty_work))
 		msm_hs_tty_flip_buffer_work(&msm_uport->rx.tty_work);
+
+	/* make sure wake_lock is released */
+	wake_lock_timeout(&msm_uport->rx.wake_lock, HZ / 10);
 }
 
 static void __exit msm_serial_hs_exit(void)

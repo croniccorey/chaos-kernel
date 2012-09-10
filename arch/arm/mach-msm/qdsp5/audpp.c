@@ -134,6 +134,20 @@ static void audpp_notify_clnt(struct audpp_state *audpp, unsigned clnt_id,
 		audpp->func[clnt_id] (audpp->private[clnt_id], id, msg);
 }
 
+static void audpp_handle_pcmdmamiss(struct audpp_state *audpp,
+							uint16_t bit_mask)
+{
+	uint8_t b_index;
+	
+	for (b_index = 0; b_index < AUDPP_CLNT_MAX_COUNT; b_index++) {
+		if (bit_mask & (0x1 << b_index))
+			if (audpp->func[b_index])
+				audpp->func[b_index] (audpp->private[b_index],
+						AUDPP_MSG_PCMDMAMISSED,
+						&bit_mask);
+	}
+}
+
 static void audpp_dsp_event(void *data, unsigned id, size_t len,
 			    void (*getevent)(void *ptr, size_t len))
 {
@@ -171,7 +185,8 @@ static void audpp_dsp_event(void *data, unsigned id, size_t len,
 			audpp->func[5] (audpp->private[5], id, msg);
 		break;
 	case AUDPP_MSG_PCMDMAMISSED:
-		pr_err("audpp: DMA missed obj=%x\n", msg[0]);
+		audpp_handle_pcmdmamiss(audpp, msg[0]);
+		//pr_err("audpp: DMA missed obj=%x\n", msg[0]);
 		break;
 	case AUDPP_MSG_CFG_MSG:
 		if (msg[0] == AUDPP_MSG_ENA_ENA) {

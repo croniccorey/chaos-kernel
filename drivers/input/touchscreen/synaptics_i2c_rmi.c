@@ -76,6 +76,9 @@ static int duplicated_filter(struct synaptics_ts_data *ts, int pos[2][2],
 	if (finger2_pressed) {
 		drift_x[1] = abs(ref_x[1] - pos[1][0]);
 		drift_y[1] = abs(ref_y[1] - pos[1][1]);
+	} else {
+		drift_x[1] = 0;
+		drift_y[1] = 0;
 	}
 
 	if (drift_x[0] < ts->dup_threshold && drift_y[0] < ts->dup_threshold && z != 0) {

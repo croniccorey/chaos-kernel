@@ -205,7 +205,7 @@ static int usb_ep_get_stall(struct msm_endpoint *ept)
 	else
 		return (CTRL_RXS & n) ? 1 : 0;
 }
-
+#ifdef CONFIG_ARCH_QSD8X50
 static unsigned ulpi_read(struct usb_info *ui, unsigned reg)
 {
 	unsigned timeout = 100000;
@@ -223,7 +223,7 @@ static unsigned ulpi_read(struct usb_info *ui, unsigned reg)
 	}
 	return ULPI_DATA_READ(readl(USB_ULPI_VIEWPORT));
 }
-
+#endif
 static int ulpi_write(struct usb_info *ui, unsigned val, unsigned reg)
 {
 	unsigned timeout = 10000;
@@ -1015,10 +1015,6 @@ static void usb_suspend_phy(struct usb_info *ui)
  * cable disconnect/reconnect to bring the phy back */
 static int usb_phy_reset(struct usb_info *ui)
 {
-	u32 val;
-	int ret;
-	int retries;
-
 	if (!ui->phy_reset)
 		return 0;
 
@@ -1029,12 +1025,12 @@ static int usb_phy_reset(struct usb_info *ui)
 		ui->hw_reset(0);
 
 #if defined(CONFIG_ARCH_QSD8X50)
-	val = readl(USB_PORTSC) & ~PORTSC_PTS_MASK;
+	u32 val = readl(USB_PORTSC) & ~PORTSC_PTS_MASK;
 	writel(val | PORTSC_PTS_ULPI, USB_PORTSC);
 
 	/* XXX: only necessary for pre-45nm internal PHYs. */
-	for (retries = 3; retries > 0; retries--) {
-		ret = ulpi_write(ui, ULPI_FUNC_SUSPENDM, ULPI_FUNC_CTRL_CLR);
+	for (int retries = 3; retries > 0; retries--) {
+		int ret = ulpi_write(ui, ULPI_FUNC_SUSPENDM, ULPI_FUNC_CTRL_CLR);
 		if (!ret)
 			break;
 		ui->phy_reset();

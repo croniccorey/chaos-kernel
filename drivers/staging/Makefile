@@ -2,7 +2,7 @@
 
 # fix for build system bug...
 obj-$(CONFIG_STAGING)		+= staging.o
-
+obj-$(CONFIG_ZRAM)		+= zram/
 obj-$(CONFIG_ET131X)		+= et131x/
 obj-$(CONFIG_SLICOSS)		+= slicoss/
 obj-$(CONFIG_VIDEO_GO7007)	+= go7007/
@@ -40,7 +40,6 @@ obj-$(CONFIG_RAR_REGISTER)	+= rar_register/
 obj-$(CONFIG_MRST_RAR_HANDLER)	+= memrar/
 obj-$(CONFIG_DX_SEP)		+= sep/
 obj-$(CONFIG_IIO)		+= iio/
-obj-$(CONFIG_RAMZSWAP)		+= ramzswap/
 obj-$(CONFIG_WLAGS49_H2)	+= wlags49_h2/
 obj-$(CONFIG_WLAGS49_H25)	+= wlags49_h25/
 obj-$(CONFIG_BATMAN_ADV)	+= batman-adv/

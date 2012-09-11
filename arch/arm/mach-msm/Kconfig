@@ -110,12 +110,11 @@ config MSM_LEGACY_7X00A_AMSS
 	bool
 
 config TURBO_MODE
-	bool "Turbo mode"
-	depends on ARCH_MSM7225 || ARCH_MSM7X00A
+	bool "32A Frequeny table"
+	depends on ARCH_MSM7225 || ARCH_MSM7X00A && MSM_AMSS_SUPPORT_256MB_EBI1
 	default n
 	help
-	  This option is used to indicate hardware support for running the
-	  memory bus at a higher speed.(only for 7X00A/7225)
+	 This option enables the frequencies that only 32A devices can use.
 
 config MSM_AMSS_VERSION
 	int

@@ -756,10 +756,8 @@ static void receive_file_work(struct work_struct *data)
 			/* wait for our last read to complete */
 			ret = wait_event_interruptible(dev->read_wq,
 				dev->rx_done || dev->state != STATE_BUSY);
-			if (dev->state == STATE_CANCELED) {
-				r = -ECANCELED;
-				if (!dev->rx_done)
-					usb_ep_dequeue(dev->ep_out, read_req);
+			if (ret < 0 || dev->state != STATE_BUSY) {
+				r = ret;
 				break;
 			}
 			/* if xfer_file_length is 0xFFFFFFFF, then we read until

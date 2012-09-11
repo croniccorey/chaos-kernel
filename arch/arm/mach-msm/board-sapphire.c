@@ -783,8 +783,8 @@ static struct msm_pmem_setting pmem_setting_32_mono = {
 	.pmem_gpu0_size = 0x00700000,	// GPU0_SIZE
 	.pmem_gpu1_start = 0x1d800000,	// GPU1_BASE
 	.pmem_gpu1_size = 0x00800000,	// GPU1_SIZE
-	.pmem_camera_start = 0x1f000000,	// CAMERA_BASE
-	.pmem_camera_size = 0x01000000,	// CAMERA_SIZE
+	.pmem_camera_start = 0x1f000000 + 0xa00000,	// CAMERA_BASE
+	.pmem_camera_size = 0x01000000 - 0xa00000,	// CAMERA_SIZE
 	.ram_console_start = 0x007a0000,	// RAM_CONSOLE_BASE
 	.ram_console_size = 0x00020000,	// RAM_CONSOLE_SIZE
 };
@@ -798,8 +798,8 @@ static struct msm_pmem_setting pmem_setting_32_dual = {
 	.pmem_gpu0_size = 0x00700000,	// GPU0_SIZE
 	.pmem_gpu1_start = 0x25800000,	// GPU1_BASE
 	.pmem_gpu1_size = 0x00800000,	// GPU1_SIZE
-	.pmem_camera_start = 0x27000000,	// CAMERA_BASE
-	.pmem_camera_size = 0x01000000,	// CAMERA_SIZE
+	.pmem_camera_start = 0x27000000 + 0xa00000,	// CAMERA_BASE
+	.pmem_camera_size = 0x01000000 - 0xa00000,	// CAMERA_SIZE
 	.ram_console_start = 0x007a0000,	// RAM_CONSOLE_BASE
 	.ram_console_size = 0x00020000,	// RAM_CONSOLE_SIZE
 };
@@ -1383,7 +1383,7 @@ static void __init sapphire_fixup(struct machine_desc *desc, struct tag *tags,
 	if (smi_sz == 32) {
 		switch (sapphire_get_die_size()) {
 		case EBI1_DUAL_128MB_128MB:
-			mi->nr_banks = 2;
+			mi->nr_banks = 3;
 #ifdef CONFIG_HOLES_IN_ZONE
 			mi->bank[0].size = 0x6d00000;
 #else
@@ -1392,9 +1392,13 @@ static void __init sapphire_fixup(struct machine_desc *desc, struct tag *tags,
 			mi->bank[1].start = 0x20000000;
 			mi->bank[1].size = 0x5800000;
 			mi->bank[1].node = PHYS_TO_NID(0x20000000);
+
+			mi->bank[2].start = 0x27000000;
+			mi->bank[2].size  = 0xa00000;
+			mi->bank[2].node = PHYS_TO_NID(0x27000000);
 			break;
 		case EBI1_MONO_256MB:
-			mi->nr_banks = 2;
+			mi->nr_banks = 3;
 #ifdef CONFIG_HOLES_IN_ZONE
 			mi->bank[0].size = 0x6d00000;
 #else
@@ -1403,6 +1407,14 @@ static void __init sapphire_fixup(struct machine_desc *desc, struct tag *tags,
 			mi->bank[1].start = 0x18000000;
 			mi->bank[1].size = 0x5800000;
 			mi->bank[1].node = PHYS_TO_NID(0x18000000);
+
+			mi->bank[2].start = 0x1f000000;
+			mi->bank[2].size  = 0xa00000;
+			mi->bank[2].node = PHYS_TO_NID(0x1f000000);
+
+			mi->bank[2].start = 0x1f000000;
+			mi->bank[2].size  = 0xa00000;
+			mi->bank[2].node = PHYS_TO_NID(0x1f000000);
 			break;
 		default:
 			mi->bank[0].size = (84*1024*1024);

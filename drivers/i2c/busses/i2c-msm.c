@@ -18,12 +18,13 @@
 #include <linux/gpio.h>
 #include <linux/init.h>
 #include <linux/i2c.h>
+#include <linux/i2c-msm.h>
 #include <linux/interrupt.h>
 #include <linux/platform_device.h>
-#include <linux/slab.h>
 #include <linux/delay.h>
 #include <linux/io.h>
 #include <linux/wakelock.h>
+#include <linux/slab.h>
 #include <mach/system.h>
 
 #define DEBUG 0
@@ -77,6 +78,13 @@ struct msm_i2c_dev {
 	void                *complete;
 	struct wake_lock    wakelock;
 	bool                is_suspended;
+	int                 clk_drv_str;
+	int                 dat_drv_str;
+	int                 skip_recover;
+	int                 last_addr;
+	int                 reg;
+	int                 last_reg;
+	int                 last_flag;
 };
 
 #if DEBUG
@@ -221,7 +229,10 @@ static void msm_i2c_interrupt_locked(struct msm_i2c_dev *dev)
 	return;
 
 out_err:
-	dev_err(dev->dev, "error, status %x\n", status);
+	dev_err(dev->dev, "error, status %x	\
+	(%02X,%02X,%02X)(%02X,%02X,%02X)(cnt:%d,pos:%d)\n",
+	status, dev->msg->addr, dev->reg, dev->msg->flags, dev->last_addr,
+	dev->last_reg, dev->last_flag, dev->cnt, dev->pos);
 	dev->ret = -EIO;
 out_complete:
 	complete(dev->complete);
@@ -256,7 +267,7 @@ msm_i2c_poll_notbusy(struct msm_i2c_dev *dev, int warn)
 		if (retries++ > 100)
 			msleep(10);
 	}
-	dev_err(dev->dev, "Error waiting for notbusy (%d)\n", warn);
+	dev_err(dev->dev, "Error waiting for notbusy\n");
 	return -ETIMEDOUT;
 }
 
@@ -271,7 +282,7 @@ msm_i2c_recover_bus_busy(struct msm_i2c_dev *dev)
 	if (!(status & (I2C_STATUS_BUS_ACTIVE | I2C_STATUS_WR_BUFFER_FULL)))
 		return 0;
 
-	msm_set_i2c_mux(true, &gpio_clk, &gpio_dat);
+	msm_set_i2c_mux(true, &gpio_clk, &gpio_dat, 0, 0);
 
 	if (status & I2C_STATUS_RD_BUFFER_FULL) {
 		dev_warn(dev->dev, "Read buffer full, status %x, intf %x\n",
@@ -306,7 +317,9 @@ msm_i2c_recover_bus_busy(struct msm_i2c_dev *dev)
 		gpio_direction_input(gpio_dat);
 		udelay(5);
 	}
-	msm_set_i2c_mux(false, NULL, NULL);
+	msm_set_i2c_mux(false, NULL, NULL,
+		dev->clk_drv_str, dev->dat_drv_str);
+
 	udelay(10);
 
 	status = readl(dev->base + I2C_STATUS);
@@ -331,10 +344,7 @@ msm_i2c_xfer(struct i2c_adapter *adap, struct i2c_msg msgs[], int num)
 	int ret;
 	long timeout;
 	unsigned long flags;
-
-	if (WARN_ON(!num))
-		return -EINVAL;
-
+	uint8_t slave_reg = -1;
 	/*
 	 * If there is an i2c_xfer after driver has been suspended,
 	 * grab wakelock to abort suspend.
@@ -344,11 +354,21 @@ msm_i2c_xfer(struct i2c_adapter *adap, struct i2c_msg msgs[], int num)
 	clk_enable(dev->clk);
 	enable_irq(dev->irq);
 
+	if (msgs->buf != NULL)
+		slave_reg = msgs->buf[0];
+
 	ret = msm_i2c_poll_notbusy(dev, 1);
 	if (ret) {
+		dev_err(dev->dev, "Still busy in starting xfer	\
+		(%02X,%02X,%02X)(%02X,%02X,%02X)\n",
+		msgs->addr, slave_reg, msgs->flags,
+		dev->last_addr, dev->last_reg, dev->last_flag);
+
+		if (!dev->skip_recover) {
 		ret = msm_i2c_recover_bus_busy(dev);
 		if (ret)
 			goto err;
+	}
 	}
 
 	spin_lock_irqsave(&dev->lock, flags);
@@ -363,6 +383,7 @@ msm_i2c_xfer(struct i2c_adapter *adap, struct i2c_msg msgs[], int num)
 	dev->need_flush = false;
 	dev->flush_cnt = 0;
 	dev->cnt = msgs->len;
+	dev->reg = slave_reg;
 	dev->complete = &complete;
 
 	msm_i2c_interrupt_locked(dev);
@@ -374,14 +395,18 @@ msm_i2c_xfer(struct i2c_adapter *adap, struct i2c_msg msgs[], int num)
 	 */
 
 	timeout = wait_for_completion_timeout(&complete, HZ);
-	msm_i2c_poll_notbusy(dev, 0); /* Read may not have stopped in time */
-
+	if (msm_i2c_poll_notbusy(dev, 0))  /* Read may not have stopped in time */
+		dev_err(dev->dev, "Still busy after xfer completion (%02X)\n",
+			msgs->addr);
 	spin_lock_irqsave(&dev->lock, flags);
 	if (dev->flush_cnt) {
 		dev_warn(dev->dev, "%d unrequested bytes read\n",
 			 dev->flush_cnt);
 	}
 	ret = dev->ret;
+	dev->last_addr = dev->msg->addr;
+	dev->last_reg = dev->reg;
+	dev->last_flag = dev->msg->flags;
 	dev->complete = NULL;
 	dev->msg = NULL;
 	dev->rem = 0;
@@ -396,9 +421,13 @@ msm_i2c_xfer(struct i2c_adapter *adap, struct i2c_msg msgs[], int num)
 		ret = -ETIMEDOUT;
 	}
 
+
 	if (ret < 0) {
-		dev_err(dev->dev, "Error during data xfer %x (%d)\n",
-			msgs[0].addr, ret);
+		dev_err(dev->dev, "Error during data xfer (%d) \
+		(%02X,%02X,%02X)\n",
+		ret, msgs->addr, dev->reg, msgs->flags);
+
+		if (!dev->skip_recover)
 		msm_i2c_recover_bus_busy(dev);
 	}
 err:
@@ -426,12 +455,12 @@ msm_i2c_probe(struct platform_device *pdev)
 {
 	struct msm_i2c_dev	*dev;
 	struct resource		*mem, *irq, *ioarea;
+	struct msm_i2c_device_platform_data *pdata = pdev->dev.platform_data;
 	int ret;
 	int fs_div;
 	int hs_div;
-	int i2c_clk;
+	int i2c_clk, i2c_clock;
 	int clk_ctl;
-	int target_clk;
 	struct clk *clk;
 
 	printk(KERN_INFO "msm_i2c_probe\n");
@@ -480,7 +509,23 @@ msm_i2c_probe(struct platform_device *pdev)
 	wake_lock_init(&dev->wakelock, WAKE_LOCK_SUSPEND, "i2c");
 	platform_set_drvdata(pdev, dev);
 
-	msm_set_i2c_mux(false, NULL, NULL);
+	if (pdata) {
+		dev->clk_drv_str = pdata->clock_strength;
+		dev->dat_drv_str = pdata->data_strength;
+		if (pdata->i2c_clock < 100000 || pdata->i2c_clock > 400000)
+			i2c_clock = 100000;
+		else
+			i2c_clock = pdata->i2c_clock;
+	} else {
+		dev->clk_drv_str = 0;
+		dev->dat_drv_str = 0;
+		i2c_clock = 100000;
+		dev->skip_recover = 1;
+	}
+
+	if (!dev->skip_recover)
+		msm_set_i2c_mux(false, NULL, NULL,
+			dev->clk_drv_str, dev->dat_drv_str);
 
 	clk_enable(clk);
 
@@ -488,9 +533,7 @@ msm_i2c_probe(struct platform_device *pdev)
 	/* I2C_FS_CLK = I2C_CLK/(2*(FS_DIVIDER_VALUE+3) */
 	/* FS_DIVIDER_VALUE = ((I2C_CLK / I2C_FS_CLK) / 2) - 3 */
 	i2c_clk = 19200000; /* input clock */
-	target_clk = 100000;
-	/* target_clk = 200000; */
-	fs_div = ((i2c_clk / target_clk) / 2) - 3;
+	fs_div = ((i2c_clk / i2c_clock) / 2) - 3;
 	hs_div = 3;
 	clk_ctl = ((hs_div & 0x7) << 8) | (fs_div & 0xff);
 	writel(clk_ctl, dev->base + I2C_CLK_CTL);
@@ -512,7 +555,8 @@ msm_i2c_probe(struct platform_device *pdev)
 	}
 
 	ret = request_irq(dev->irq, msm_i2c_interrupt,
-			IRQF_DISABLED | IRQF_TRIGGER_RISING, pdev->name, dev);
+			IRQF_DISABLED | IRQF_TRIGGER_RISING | IRQF_TIMER,
+			pdev->name, dev);
 	if (ret) {
 		dev_err(&pdev->dev, "request_irq failed\n");
 		goto err_request_irq_failed;

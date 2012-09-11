@@ -164,40 +164,62 @@ config MACH_HALIBUT
 	depends on ARCH_MSM7X00A
 	bool "Halibut Board (QCT SURF7201A)"
 	help
-	  Support for the Qualcomm SURF7201A eval board.
+	 Support for the Qualcomm SURF7201A eval board.
 
 config MACH_TROUT
 	depends on ARCH_MSM
 	depends on ARCH_MSM7X00A
-	bool "HTC Dream (aka trout)"
+	bool "Trout (HTC Dream, T-Mobile G1, Google ADP1)"
 	help
-	  Support for the HTC Dream, T-Mobile G1, Android ADP1 devices.
+	 Support for the HTC Dream, T-Mobile G1, Android ADP1 devices.
 
 config MACH_MSM7X30_SURF
 	depends on ARCH_MSM7X30
 	bool "MSM7x30 SURF"
 	help
-	  Support for the Qualcomm MSM7x30 SURF eval board.
+	 Support for the Qualcomm MSM7x30 SURF eval board.
 
 config MACH_SWORDFISH
 	depends on ARCH_QSD8X50
 	default y
 	bool "Swordfish Board (QCT SURF8250)"
 	help
-	  Support for the Qualcomm SURF8250 eval board.
+	 Support for the Qualcomm SURF8250 eval board.
+
+config MACH_SAPPHIRE
+	depends on ARCH_MSM7X00A
+	default y
+	bool "Sapphire (HTC Magic, T-Mobile MyTouch3G)"
+	help
+	 Select this to support HTC Magic, T-Mobile MyTouch3G.
+
+	config MACH_MAHIMAHI
+
+depends on ARCH_QSD8X50
+	default y
+	bool "Mahi-Mahi"
+	help
+	 Select this to support the Mahi-Mahi device.
 
 config MACH_QSD8X50_SURF
 	depends on ARCH_QSD8X50
 	bool "QSD8x50 SURF"
 	help
-	  Support for the Qualcomm QSD8x50 SURF eval board.
+	 Support for the Qualcomm QSD8x50 SURF eval board.
+
+config MACH_QSD8X50_FFA
+	depends on ARCH_QSD8X50
+	default y
+	bool "8x50-ffa"
+	help
+ 	 Select this to support the 8x50 ffa device.
 
 config MACH_QSD8X50A_ST1_5
 	depends on ARCH_QSD8X50
 	select MSM_SOC_REV_A
 	bool "QSD8x50A ST1.5"
 	help
-	  Support for the Qualcomm ST1.5.
+	 Support for the Qualcomm ST1.5.
 
 endmenu
 
@@ -212,9 +234,10 @@ config 32A_RAMHACK
 	help
 	 This option takes 10mb memory from camera and gives it to ram.
 
-config MSM_AMSS_RADIO2708_MEMMAP 
+config MSM_AMSS_RADIO2708_MEMMAP
+	depends on !MSM_AMSS_SUPPORT_256MB_EBI1
   	default n 
-	bool "Dream/Sapphire 2.22.27.08 Memory Map support" 
+	bool "Dream/Sapphire 2708+ Memory Map support" 
 
 config MSM_DEBUG_UART
 	int
@@ -242,32 +265,6 @@ endchoice
 
 config MSM_SMD_PKG3
 	bool
-
-config MACH_SAPPHIRE
-	depends on ARCH_MSM7X00A
-	default y
-	bool "Sapphire"
-
-config MACH_MAHIMAHI
-	depends on ARCH_QSD8X50
-	default y
-	bool "Mahi-Mahi"
-	help
-	  Select this to support the Mahi-Mahi device
-
-config MACH_QSD8X50_FFA
-	depends on ARCH_QSD8X50
-	default y
-	bool "8x50-ffa"
-	help
-	  Select this to support the 8x50 ffa device
-
-config MACH_MSM7X30_SURF
-	depends on ARCH_MSM7X30
-	default y
-	bool "QCT SURF7x30 Board"
-	help
-	  Select this to support the Qualcomm SURF7X30 development board
 
 config HTC_HEADSET
 	tristate "HTC 2 Wire detection driver"

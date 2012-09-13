@@ -1365,10 +1365,10 @@ static void __init sapphire_fixup(struct machine_desc *desc, struct tag *tags,
                         mi->bank[1].size = 0x5800000;
                         mi->bank[1].node = PHYS_TO_NID(0x18000000);
                         break;
+                default:
 #ifdef CONFIG_32A_RAMHACK
 			mi->nr_banks = 2;
 #endif /* 32A RamHack */
-                default:
                         mi->bank[0].size = MSM_EBI_SMI32_256MB_SIZE;
 #ifdef CONFIG_32A_RAMHACK
 			mi->bank[1].start = 0x27000000;

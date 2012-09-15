@@ -109,13 +109,6 @@ config MSM_REMOTE_SPINLOCK
 config MSM_LEGACY_7X00A_AMSS
 	bool
 
-config TURBO_MODE
-	bool "32A Frequeny table"
-	depends on ARCH_MSM7225 || ARCH_MSM7X00A && MSM_AMSS_SUPPORT_256MB_EBI1
-	default n
-	help
-	 This option enables the frequencies that only 32A devices can use.
-
 config MSM_AMSS_VERSION
 	int
 	default 6210 if MSM_AMSS_VERSION_6210
@@ -225,6 +218,13 @@ endmenu
 config MSM_AMSS_SUPPORT_256MB_EBI1
 	default n
 	bool "AMSS that support unified 128MB and 256MB EBI1"
+
+config TURBO_MODE
+	bool "32A Frequeny table"
+	depends on ARCH_MSM7225 || ARCH_MSM7X00A && MSM_AMSS_SUPPORT_256MB_EBI1
+	default n
+	help
+	 This option enables the frequencies that only 32A devices can use.
 
 config 32A_RAMHACK
 	depends on MSM_AMSS_SUPPORT_256MB_EBI1

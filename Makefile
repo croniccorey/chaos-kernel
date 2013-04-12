@@ -2,7 +2,7 @@ VERSION = 2
 PATCHLEVEL = 6
 SUBLEVEL = 35
 EXTRAVERSION = .14
-NAME = Comtrolled Chaos
+NAME = Controlled Chaos
 
 # *DOCUMENTATION*
 # To see a list of typical targets execute "make help"
